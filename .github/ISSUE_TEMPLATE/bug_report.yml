@@ -1,0 +1,54 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect, and what actually happened?
+      placeholder: "Expected: ...\nActual: ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Configure node with MEL = -3500W, mode = domestic
+        2. Send payload 5000 (import excursion)
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: config
+    attributes:
+      label: Node config (MEL / MIL / mode)
+      placeholder: "MEL: -3500W, MIL: disabled, domestic"
+    validations:
+      required: false
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions (node-red-contrib-g100 / Node-RED / Node.js)
+      placeholder: "0.1.0 / 4.1.10 / 22.x"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Platform
+      options:
+        - Victron GX (Venus OS)
+        - Raspberry Pi / Linux
+        - macOS
+        - Windows
+        - Docker
+        - Other
+    validations:
+      required: true
