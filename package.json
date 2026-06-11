@@ -21,7 +21,16 @@
     "url": "https://github.com/dirkjanfaber/node-red-contrib-g100.git"
   },
   "main": "dist/nodes/g100.js",
+  "files": [
+    "dist/",
+    "locales/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "tsc && cp src/nodes/*.html dist/nodes/",
     "build:watch": "tsc --watch",
     "test": "jest",
