@@ -144,9 +144,10 @@ module.exports = function (RED: NodeRED) {
 function updateStatus (node: any, output: G100Output) {
   if (output.stage === 3) {
     node.status({ fill: 'red', shape: 'ring', text: 'Stage 3 — LOCKED OUT' })
-  } else if (output.inExcursion) {
+  } else if (output.inExcursion || output.stage2Count > 0) {
     const count = output.stage2Count
-    node.status({ fill: 'yellow', shape: 'dot', text: `Stage 2 — excursion (${count} events)` })
+    const detail = output.inExcursion ? 'excursion active' : 'tracking'
+    node.status({ fill: 'yellow', shape: 'dot', text: `Stage 2 — ${detail} (${count} events)` })
   } else {
     node.status({ fill: 'green', shape: 'dot', text: 'Stage 1 — normal' })
   }
