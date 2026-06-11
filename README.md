@@ -9,7 +9,7 @@ G100/2 is a UK technical regulation that governs how distributed energy resource
 | Stage | Meaning |
 |-------|---------|
 | 1 | Normal — within limits |
-| 2 | Excursion in progress — counting threshold breaches (15 s, 1 min, 10-min window) |
+| 2 | Excursion tracking — threshold breaches counted; persists between excursions until counters are cleared or a reset is performed |
 | 3 | Lockout — system must stop exporting/importing until reset |
 
 The regulation distinguishes **domestic** and **commercial** sites:

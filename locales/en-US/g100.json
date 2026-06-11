@@ -14,7 +14,8 @@
     },
     "status": {
       "stage1": "Stage 1 — normal",
-      "stage2": "Stage 2 — excursion",
+      "stage2active": "Stage 2 — excursion active",
+      "stage2tracking": "Stage 2 — tracking",
       "stage3": "Stage 3 — LOCKED OUT"
     }
   }

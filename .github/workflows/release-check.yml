@@ -35,15 +35,15 @@ jobs:
           fi
           echo "✅ CHANGELOG.md mentions version $VERSION"
 
-      - name: Use Node.js 20.x
+      - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 22.x
           cache: 'npm'
 
       - name: Install, build, and test
         run: |
-          npm ci
+          npm install
           npm run build
           npm run lint
           npm test -- --coverage

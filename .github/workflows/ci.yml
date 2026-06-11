@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - run: npm ci
+      - run: npm install
 
       - name: Build TypeScript
         run: npm run build
@@ -35,7 +35,7 @@ jobs:
         run: npm test -- --coverage
 
       - name: Upload coverage report
-        if: matrix.node-version == '20.x'
+        if: matrix.node-version == '22.x'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
@@ -43,7 +43,7 @@ jobs:
           retention-days: 30
 
       - name: Coverage summary
-        if: matrix.node-version == '20.x'
+        if: matrix.node-version == '22.x'
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             node -e "
