@@ -1,0 +1,188 @@
+[
+    {
+        "id": "g100-example-tab",
+        "type": "tab",
+        "label": "G100 Compliance",
+        "disabled": false,
+        "info": "# G100/2 Compliance with Victron\n\nThis flow monitors grid import/export against the agreed MEL/MIL limits and enforces Stage 2/3 lockout per the ENA EREC G100 Issue 2 specification.\n\n## How it works\n\n1. **Grid Power**: Read from Victron grid meter (negative = export, positive = import)\n2. **AC Source**: Tells the node when the grid is the active AC source. Enforcement is suspended on generator or shore power.\n3. **Lockout output**: Fires only when lockout state changes. Wire this to your relay or ESS control to stop exporting when `true`.\n4. **Status output**: Full G100 state on every reading — stage, excursion counts, reset eligibility.\n\n## Setup\n\nUpdate the Victron service IDs to match your installation:\n- Grid meter: `com.victronenergy.grid/XX`\n- System:     `com.victronenergy.system/0`\n- VE.Bus:     `com.victronenergy.vebus/XXX`\n\nConfigure the g100 node with your agreed MEL (export limit, negative W) and optionally MIL (import limit, positive W).\n\n## Reset\n\nFor domestic installations, send `{ topic: 'reset' }` to reset from Stage 3. For commercial, include the installer password: `{ topic: 'reset', payload: { password: 1234 } }`."
+    },
+    {
+        "id": "g100-comment-inputs",
+        "type": "comment",
+        "z": "g100-example-tab",
+        "name": "Victron Inputs",
+        "info": "Update service IDs to match your installation.",
+        "x": 130,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "g100-grid-power",
+        "type": "victron-input-gridmeter",
+        "z": "g100-example-tab",
+        "service": "com.victronenergy.grid/30",
+        "path": "/Ac/Power",
+        "serviceObj": {
+            "service": "com.victronenergy.grid/30",
+            "name": "Grid meter"
+        },
+        "pathObj": {
+            "path": "/Ac/Power",
+            "name": "AC Power (W)",
+            "type": "float"
+        },
+        "name": "Grid Power",
+        "onlyChanges": false,
+        "roundValues": "0",
+        "x": 140,
+        "y": 160,
+        "wires": [
+            ["g100-node"]
+        ]
+    },
+    {
+        "id": "g100-ac-source",
+        "type": "victron-input-system",
+        "z": "g100-example-tab",
+        "service": "com.victronenergy.system/0",
+        "path": "/Ac/ActiveIn/Source",
+        "serviceObj": {
+            "service": "com.victronenergy.system/0",
+            "name": "System"
+        },
+        "pathObj": {
+            "path": "/Ac/ActiveIn/Source",
+            "name": "Active input source",
+            "type": "enum"
+        },
+        "name": "AC Source",
+        "onlyChanges": true,
+        "roundValues": "0",
+        "x": 140,
+        "y": 240,
+        "wires": [
+            ["g100-set-topic-acsource"]
+        ]
+    },
+    {
+        "id": "g100-set-topic-acsource",
+        "type": "change",
+        "z": "g100-example-tab",
+        "name": "topic: acSource",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "acSource",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 330,
+        "y": 240,
+        "wires": [
+            ["g100-node"]
+        ]
+    },
+    {
+        "id": "g100-node",
+        "type": "g100",
+        "z": "g100-example-tab",
+        "name": "G100",
+        "mel": -3500,
+        "enableMil": false,
+        "mil": 12500,
+        "mode": "domestic",
+        "allowUserReset": true,
+        "installerPassword": 0,
+        "debug": false,
+        "x": 530,
+        "y": 200,
+        "wires": [
+            ["g100-debug-lockout"],
+            ["g100-debug-status"]
+        ]
+    },
+    {
+        "id": "g100-comment-outputs",
+        "type": "comment",
+        "z": "g100-example-tab",
+        "name": "Outputs",
+        "info": "Output 1 (lockout) fires only when the lockout state changes.\nWire it to a Victron relay or ESS setpoint node to stop exporting on Stage 3.\n\nOutput 2 (status) fires on every grid power reading.",
+        "x": 720,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "g100-debug-lockout",
+        "type": "debug",
+        "z": "g100-example-tab",
+        "name": "Lockout (on change)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "g100-debug-status",
+        "type": "debug",
+        "z": "g100-example-tab",
+        "name": "Status",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 710,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "g100-comment-reset",
+        "type": "comment",
+        "z": "g100-example-tab",
+        "name": "Reset (domestic — no password needed)",
+        "info": "For commercial mode, add the installer password:\n{ payload: { password: 1234 } }",
+        "x": 200,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "g100-inject-reset",
+        "type": "inject",
+        "z": "g100-example-tab",
+        "name": "Reset Stage 3",
+        "props": [
+            {
+                "p": "topic",
+                "v": "reset",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "reset",
+        "x": 160,
+        "y": 400,
+        "wires": [
+            ["g100-node"]
+        ]
+    }
+]
