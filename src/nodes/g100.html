@@ -124,7 +124,7 @@
     <li>
       <b>Status</b> — emitted on every grid power reading.
       <dl class="message-properties">
-        <dt>payload.stage <span class="property-type">1 | 2 | 3</span></dt>
+        <dt>payload.stage <span class="property-type">1 | 3</span></dt>
         <dt>payload.lockout <span class="property-type">boolean</span></dt>
         <dt>payload.inExcursion <span class="property-type">boolean</span></dt>
         <dt>payload.stage2Count <span class="property-type">number</span></dt>
@@ -140,9 +140,9 @@
 
   <h3>G100/2 Stages</h3>
   <ul>
-    <li><b>Stage 1</b>: Normal — power within MEL/MIL limits.</li>
-    <li><b>Stage 2</b>: Excursion in progress. Timers track severity.</li>
-    <li><b>Stage 3</b>: Lockout. Triggered by any of:
+    <li><b>Stage 1</b>: Normal — power within MEL/MIL limits. Node dot is green.</li>
+    <li><b>Stage 2</b>: Excursion tracking active. Threshold breaches are counted and the system remains in Stage 2 <em>between</em> excursions until counters are cleared or a reset is performed. Node dot is yellow — <em>excursion active</em> while a live excursion is in progress, <em>tracking</em> when between excursions with non-zero counts. Use <code>payload.inExcursion</code> and <code>payload.stage2Count</code> to distinguish the two sub-states.</li>
+    <li><b>Stage 3</b>: Lockout. Node dot is red. Triggered by any of:
       <ul>
         <li>3 excursions sustained ≥ 15 seconds</li>
         <li>2 excursions within a 10-minute window</li>
