@@ -1,0 +1,162 @@
+<script type="text/javascript">
+  RED.nodes.registerType('g100', {
+    category: 'Victron Energy',
+    color: '#C0D9FF',
+    defaults: {
+      name:              { value: '' },
+      mel:               { value: -3500,  validate: RED.validators.number() },
+      enableMil:         { value: false },
+      mil:               { value: 12500,  validate: RED.validators.number() },
+      mode:              { value: 'domestic' },
+      allowUserReset:    { value: true },
+      installerPassword: { value: 0,      validate: RED.validators.number() },
+      debug:             { value: false }
+    },
+    inputs: 1,
+    outputs: 2,
+    icon: 'font-awesome/fa-plug',
+    label: function () {
+      return this.name || 'G100/2'
+    },
+    paletteLabel: 'G100/2',
+    inputLabels: ['Grid Power (W)'],
+    outputLabels: ['lockout (on change)', 'status'],
+    oneditprepare: function () {
+      // Show / hide MIL row
+      function toggleMil () {
+        var enabled = $('#node-input-enableMil').is(':checked')
+        $('#g100-row-mil').toggle(enabled)
+      }
+      $('#node-input-enableMil').on('change', toggleMil)
+      toggleMil()
+
+      // Show / hide allowUserReset row
+      function toggleUserReset () {
+        var domestic = $('#node-input-mode').val() === 'domestic'
+        $('#g100-row-allowUserReset').toggle(domestic)
+      }
+      $('#node-input-mode').on('change', toggleUserReset)
+      toggleUserReset()
+    }
+  })
+</script>
+
+<script type="text/html" data-template-name="g100">
+
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="G100/2">
+  </div>
+
+  <hr/>
+
+  <div class="form-row">
+    <label for="node-input-mel"><i class="fa fa-arrow-circle-down"></i> MEL (W)</label>
+    <input type="number" id="node-input-mel" style="width:120px">
+    <span class="form-tips" style="margin-left:8px">Maximum Export Limit — negative value, e.g. <code>-3500</code> = 3.5 kW</span>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-enableMil"><i class="fa fa-arrow-circle-up"></i> MIL</label>
+    <input type="checkbox" id="node-input-enableMil" style="display:inline-block;width:auto;margin-right:6px">
+    <label for="node-input-enableMil" style="width:auto">Enable Maximum Import Limit</label>
+  </div>
+
+  <div class="form-row" id="g100-row-mil" style="display:none">
+    <label for="node-input-mil"></label>
+    <input type="number" id="node-input-mil" style="width:120px">
+    <span class="form-tips" style="margin-left:8px">Positive value, e.g. <code>12500</code> = 12.5 kW</span>
+  </div>
+
+  <hr/>
+
+  <div class="form-row">
+    <label for="node-input-mode"><i class="fa fa-home"></i> Mode</label>
+    <select id="node-input-mode" style="width:200px">
+      <option value="domestic">Domestic</option>
+      <option value="commercial">Commercial</option>
+    </select>
+  </div>
+
+  <div class="form-row" id="g100-row-allowUserReset">
+    <label for="node-input-allowUserReset"><i class="fa fa-undo"></i> User reset</label>
+    <input type="checkbox" id="node-input-allowUserReset" style="display:inline-block;width:auto;margin-right:6px">
+    <label for="node-input-allowUserReset" style="width:auto">Allow end-user Stage 3 reset (max 3 per 30 days)</label>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-installerPassword"><i class="fa fa-lock"></i> Installer password</label>
+    <input type="number" id="node-input-installerPassword" style="width:120px">
+  </div>
+
+  <hr/>
+
+  <div class="form-row">
+    <label for="node-input-debug"><i class="fa fa-bug"></i> Debug</label>
+    <input type="checkbox" id="node-input-debug" style="display:inline-block;width:auto;margin-right:6px">
+    <label for="node-input-debug" style="width:auto">Attach full internal state to status output</label>
+  </div>
+
+</script>
+
+<script type="text/html" data-help-name="g100">
+  <p>Monitors grid power and enforces <b>G100/2</b> (ENA EREC G100 Issue 2) Customer Export and Import Limitation Scheme compliance on a Victron system.</p>
+
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt>payload <span class="property-type">number</span></dt>
+    <dd>Grid power in Watts from a Victron Grid Meter node. Negative = export, positive = import.</dd>
+    <dt class="optional">topic: <code>acSource</code></dt>
+    <dd>AC source state from a Victron System node (<code>/Ac/ActiveIn/Source</code>). Payload <code>1</code> = grid; any other value suspends enforcement (generator, shore power).</dd>
+    <dt class="optional">topic: <code>reset</code></dt>
+    <dd>Attempt a Stage 3 reset. Pass <code>{ password: 123456 }</code> as payload for an installer reset, or omit payload for an end-user reset.</dd>
+  </dl>
+
+  <h3>Outputs</h3>
+  <ol class="node-ports">
+    <li>
+      <b>Lockout</b> — emitted only when the lockout state changes.
+      <dl class="message-properties">
+        <dt>payload <span class="property-type">boolean</span></dt>
+        <dd><code>true</code> on Stage 3 entry; <code>false</code> when reset. Connect to a Victron relay or ESS mode node.</dd>
+      </dl>
+    </li>
+    <li>
+      <b>Status</b> — emitted on every grid power reading.
+      <dl class="message-properties">
+        <dt>payload.stage <span class="property-type">1 | 2 | 3</span></dt>
+        <dt>payload.lockout <span class="property-type">boolean</span></dt>
+        <dt>payload.inExcursion <span class="property-type">boolean</span></dt>
+        <dt>payload.stage2Count <span class="property-type">number</span></dt>
+        <dt>payload.stage2In10MinCount <span class="property-type">number</span></dt>
+        <dt>payload.stage2Over1Min <span class="property-type">number</span></dt>
+        <dt>payload.stage3Count <span class="property-type">number</span></dt>
+        <dt>payload.stage3In30DaysCount <span class="property-type">number</span></dt>
+        <dt>payload.resetEligible <span class="property-type">boolean</span></dt>
+        <dt>payload.lockoutStartTs <span class="property-type">string | null</span></dt>
+      </dl>
+    </li>
+  </ol>
+
+  <h3>G100/2 Stages</h3>
+  <ul>
+    <li><b>Stage 1</b>: Normal — power within MEL/MIL limits.</li>
+    <li><b>Stage 2</b>: Excursion in progress. Timers track severity.</li>
+    <li><b>Stage 3</b>: Lockout. Triggered by any of:
+      <ul>
+        <li>3 excursions sustained ≥ 15 seconds</li>
+        <li>2 excursions within a 10-minute window</li>
+        <li>1 excursion sustained ≥ 1 minute</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>Reset policy</h3>
+  <ul>
+    <li><b>Domestic</b>: end-user may reset up to 3 times in any 30-day period (if enabled). After that, installer password required.</li>
+    <li><b>Commercial</b>: reset available after a 4-hour timeout, or immediately with installer password.</li>
+  </ul>
+
+  <h3>Persistence</h3>
+  <p>State (counters, lockout, timestamps) is stored in node context. For it to survive Node-RED restarts, configure <code>contextStorage</code> to use the <code>localfilesystem</code> provider in your Node-RED <code>settings.js</code>.</p>
+</script>

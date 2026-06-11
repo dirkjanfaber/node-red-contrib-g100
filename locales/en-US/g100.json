@@ -1,0 +1,21 @@
+{
+  "g100": {
+    "label": {
+      "name": "Name",
+      "mel": "MEL (W)",
+      "enableMil": "Enable MIL",
+      "mil": "MIL (W)",
+      "mode": "Mode",
+      "mode-domestic": "Domestic",
+      "mode-commercial": "Commercial",
+      "allowUserReset": "Allow end-user reset",
+      "installerPassword": "Installer password",
+      "debug": "Debug"
+    },
+    "status": {
+      "stage1": "Stage 1 — normal",
+      "stage2": "Stage 2 — excursion",
+      "stage3": "Stage 3 — LOCKED OUT"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test with coverage
+        run: npm test -- --coverage
+
+      - name: Upload coverage report
+        if: matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+      - name: Coverage summary
+        if: matrix.node-version == '20.x'
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const s = require('./coverage/coverage-summary.json').total;
+              const row = (label, key) => '| ' + label + ' | ' + s[key].pct + '% | ' + s[key].covered + '/' + s[key].total + ' |';
+              const lines = [
+                '## Test Coverage',
+                '',
+                '| Metric | Coverage | Covered/Total |',
+                '|--------|----------|---------------|',
+                row('Statements', 'statements'),
+                row('Branches',   'branches'),
+                row('Functions',  'functions'),
+                row('Lines',      'lines'),
+              ];
+              console.log(lines.join('\n'));
+            " >> \$GITHUB_STEP_SUMMARY
+          fi
