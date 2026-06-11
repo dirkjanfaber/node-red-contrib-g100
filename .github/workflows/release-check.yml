@@ -43,6 +43,7 @@ jobs:
 
       - name: Install, build, and test
         run: |
+          npm install -g npm@11
           npm ci
           npm run build
           npm run lint
