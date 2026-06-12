@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.2] - 2026-06-12
+
+### Fixed
+- Anchor `/coverage/` in `.gitignore` to root so `docs/coverage/` can be committed by the coverage-report workflow
+- Upgrade GitHub Actions to Node.js 24-native versions (checkout v6, setup-node v6, upload-artifact v7)
+
 ## [0.1.1] - 2026-06-11
 
 ### Fixed
