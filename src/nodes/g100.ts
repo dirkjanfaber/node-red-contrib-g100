@@ -57,6 +57,22 @@ module.exports = function (RED: NodeRED) {
       allowUserReset: Boolean(config.allowUserReset)
     }
 
+    // Warn if installer password is at the unconfigured default (0)
+    if (g100Config.installerPassword === 0) {
+      this.warn(
+        'G100: installer password is not configured (value is 0). ' +
+        'Installer resets are disabled until a non-zero password is set in the node settings.'
+      )
+    }
+
+    // Error if MEL is not negative — a positive MEL will cause false excursions on every reading
+    if (g100Config.mel !== null && g100Config.mel >= 0) {
+      this.error(
+        `G100: MEL must be a negative value (e.g. -3500 for 3.5 kW export limit). ` +
+        `Current value ${g100Config.mel} W will cause continuous false excursions.`
+      )
+    }
+
     // Warn once on deploy if context storage is not file-backed
     if (!isFileContextConfigured((RED as any).settings?.contextStorage)) {
       this.warn(
@@ -102,7 +118,15 @@ module.exports = function (RED: NodeRED) {
       // AC source update from a Victron System node
       // (connect victron-input-system /Ac/ActiveIn/Source with topic='acSource')
       if (msg.topic === 'acSource') {
+        const wasGrid = acSourceIsGrid
         acSourceIsGrid = msg.payload === 1
+        // Switching away from grid while an excursion is in progress: clear the
+        // in-flight excursion so that generator downtime is not counted toward
+        // the G100 15s/1min thresholds when the grid returns.
+        if (wasGrid && !acSourceIsGrid && state.inExcursion) {
+          const sanitized = sanitizeOnLoad(state)
+          saveAndEmit(sanitized, computeOutput(sanitized, g100Config, now))
+        }
         return
       }
 

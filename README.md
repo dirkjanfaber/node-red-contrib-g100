@@ -61,12 +61,19 @@ State (excursion counters, lockout status, Stage 3 timestamps) is stored in Node
 To enable file context in Node-RED's `settings.js`:
 
 ```js
-contextStorage: {
-    default: {
-        module: 'localfilesystem'
+module.exports = {
+    contextStorage: {
+        default: {
+            module: 'localfilesystem',
+            config: {
+                flushInterval: 30  // seconds — write state to disk every 30 s
+            }
+        }
     }
 }
 ```
+
+`flushInterval` controls how often Node-RED writes context to disk. Lower values reduce the window in which a crash could lose Stage 3 lockout state (a compliance risk); higher values reduce write frequency (useful on SD-card based systems such as Raspberry Pi). 30 seconds is a reasonable default; 300 seconds (5 minutes) is acceptable if SD-card wear is a concern.
 
 ## Requirements
 

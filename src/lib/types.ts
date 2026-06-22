@@ -35,6 +35,7 @@ export interface G100Output {
   stage2Count: number
   stage2Over1Min: number
   stage2In10MinCount: number            // computed: excursions within the last 10 minutes
+  stage2In24HrCount: number            // computed: excursions within the last 24 hours (Stage 3 triggers when > 3)
   stage3Count: number
   stage3In30DaysCount: number           // computed: Stage 3 events within the last 30 days
   resetEligible: boolean                // whether a non-password reset is currently allowed
