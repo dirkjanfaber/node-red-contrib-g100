@@ -4,7 +4,7 @@
     color: '#C0D9FF',
     defaults: {
       name:              { value: '' },
-      mel:               { value: -3500,  validate: RED.validators.number() },
+      mel:               { value: -3500,  validate: function (v) { return Number(v) < 0 } },
       enableMil:         { value: false },
       mil:               { value: 12500,  validate: RED.validators.number() },
       mode:              { value: 'domestic' },
@@ -129,6 +129,7 @@
         <dt>payload.inExcursion <span class="property-type">boolean</span></dt>
         <dt>payload.stage2Count <span class="property-type">number</span></dt>
         <dt>payload.stage2In10MinCount <span class="property-type">number</span></dt>
+        <dt>payload.stage2In24HrCount <span class="property-type">number</span></dt>
         <dt>payload.stage2Over1Min <span class="property-type">number</span></dt>
         <dt>payload.stage3Count <span class="property-type">number</span></dt>
         <dt>payload.stage3In30DaysCount <span class="property-type">number</span></dt>

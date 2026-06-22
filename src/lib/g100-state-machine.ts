@@ -13,10 +13,13 @@ import {
 const THRESHOLD_15S_MS = 15_000
 const THRESHOLD_1MIN_MS = 60_000
 const WINDOW_10MIN_MS = 10 * 60_000
+const WINDOW_24HR_MS = 24 * 60 * 60_000
 const LOCKOUT_COMMERCIAL_TIMEOUT_MS = 4 * 60 * 60_000
 const WINDOW_30DAY_MS = 30 * 24 * 60 * 60_000
 
-const STAGE3_TRIGGER_STAGE2_COUNT = 3
+// G100/2 s.4.5.1.3: Stage 3 triggers when stage-2 excursion count EXCEEDS this
+// value in a 24-hour sliding window ("more than three" = strictly > 3)
+const STAGE3_TRIGGER_STAGE2_24HR_LIMIT = 3
 const STAGE3_TRIGGER_10MIN_COUNT = 2
 const STAGE3_TRIGGER_1MIN_COUNT = 1
 const DOMESTIC_RESET_LIMIT_IN_30DAYS = 3
@@ -101,8 +104,9 @@ export function processGridPower (
 
   // ---- Stage 3 triggers ----------------------------------------------------
   const stage2In10MinCount = countWithin(s.stage2ExcursionTimestamps, WINDOW_10MIN_MS, now)
+  const stage2In24HrCount = countWithin(s.stage2ExcursionTimestamps, WINDOW_24HR_MS, now)
   const shouldLockout =
-    s.stage2Count >= STAGE3_TRIGGER_STAGE2_COUNT ||
+    stage2In24HrCount > STAGE3_TRIGGER_STAGE2_24HR_LIMIT ||
     stage2In10MinCount >= STAGE3_TRIGGER_10MIN_COUNT ||
     s.stage2Over1Min >= STAGE3_TRIGGER_1MIN_COUNT
 
@@ -127,6 +131,7 @@ export function processGridPower (
  */
 export function computeOutput (state: G100State, config: G100Config, now: Date): G100Output {
   const stage2In10MinCount = countWithin(state.stage2ExcursionTimestamps, WINDOW_10MIN_MS, now)
+  const stage2In24HrCount = countWithin(state.stage2ExcursionTimestamps, WINDOW_24HR_MS, now)
   const stage3In30DaysCount = config.mode === 'domestic'
     ? countWithin(state.stage3Timestamps, WINDOW_30DAY_MS, now)
     : 0
@@ -152,6 +157,7 @@ export function computeOutput (state: G100State, config: G100Config, now: Date):
     stage2Count: state.stage2Count,
     stage2Over1Min: state.stage2Over1Min,
     stage2In10MinCount,
+    stage2In24HrCount,
     stage3Count: state.stage3Count,
     stage3In30DaysCount,
     resetEligible,
@@ -175,7 +181,10 @@ export function attemptReset (
     return { success: false, reason: 'Not in Stage 3', state }
   }
 
-  const isInstallerReset = password === config.installerPassword
+  // installerPassword === 0 is the unconfigured default; never treat it as a valid credential
+  const isInstallerReset = password !== undefined
+    && config.installerPassword !== 0
+    && password === config.installerPassword
   if (isInstallerReset) {
     return { success: true, state: clearToStage1(state, true) }
   }

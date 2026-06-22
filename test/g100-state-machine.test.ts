@@ -140,6 +140,13 @@ describe('excursion detection', () => {
     expect(s.inExcursion).toBe(false)
   })
 
+  test('positive MEL (misconfiguration) triggers excursion on idle power', () => {
+    // Documents the dangerous effect of entering 3500 instead of -3500
+    const cfg: G100Config = { ...defaultConfig, mel: 3500 }
+    const s = feed(createInitialState(), 0, 0, cfg)
+    expect(s.inExcursion).toBe(true)
+  })
+
   test('no import excursion when MIL is null', () => {
     const cfg: G100Config = { ...defaultConfig, mil: null }
     const s = feed(createInitialState(), 100_000, 0, cfg)
@@ -231,7 +238,7 @@ describe('Stage 2 — 1-minute threshold', () => {
 // ---------------------------------------------------------------------------
 
 describe('Stage 3 — triggers', () => {
-  test('3 stage-2 excursions trigger Stage 3', () => {
+  test('2 excursions within 10-minute window trigger Stage 3 (10-min rule)', () => {
     const s = reachStage3ByCount()
     expect(s.stage).toBe(3)
   })
@@ -286,7 +293,7 @@ describe('Stage 3 — triggers', () => {
     expect(s.lockoutStartTs).not.toBeNull()
   })
 
-  test('import excursion (> MIL) also triggers Stage 3 after 3 events', () => {
+  test('import excursion (> MIL) triggers Stage 3 via 10-minute rule', () => {
     let s = createInitialState()
     for (let i = 0; i < 3; i++) {
       const base = i * min(2)
@@ -294,6 +301,43 @@ describe('Stage 3 — triggers', () => {
       s = feed(s, 0, base + sec(25))
     }
     expect(s.stage).toBe(3)
+  })
+
+  test('3 excursions >10 min apart in 24 hours do NOT trigger Stage 3 (more than 3 required)', () => {
+    let s = createInitialState()
+    for (let i = 0; i < 3; i++) {
+      const base = i * min(15)
+      s = sustain(s, MEL - 1, base, base + sec(20))
+      s = feed(s, 0, base + sec(25))
+    }
+    expect(s.stage).toBe(1)
+    expect(s.stage2Count).toBe(3)
+  })
+
+  test('4 excursions >10 min apart within 24 hours trigger Stage 3 via 24-hour count', () => {
+    let s = createInitialState()
+    for (let i = 0; i < 4; i++) {
+      const base = i * min(15)
+      s = sustain(s, MEL - 1, base, base + sec(20))
+      s = feed(s, 0, base + sec(25))
+    }
+    expect(s.stage).toBe(3)
+  })
+
+  test('excursions older than 24 hours fall out of the Stage 3 count window', () => {
+    // 3 excursions in the past, now all >24h old
+    let s = createInitialState()
+    for (let i = 0; i < 3; i++) {
+      const base = i * min(15)
+      s = sustain(s, MEL - 1, base, base + sec(20))
+      s = feed(s, 0, base + sec(25))
+    }
+    // 4th excursion 25 hours later — the earlier 3 are outside the 24-hr window
+    const base4 = hr(25)
+    s = sustain(s, MEL - 1, base4, base4 + sec(20))
+    expect(s.stage).toBe(1)
+    const output = computeOutput(s, defaultConfig, at(base4 + sec(20)))
+    expect(output.stage2In24HrCount).toBe(1)
   })
 })
 
@@ -356,6 +400,37 @@ describe('Stage 3 reset — domestic', () => {
     const s = reachStage3ByCount()
     const result = attemptReset(defaultConfig, s, at(min(30)), defaultConfig.installerPassword)
     expect(result.success).toBe(true)
+  })
+
+  test('password 0 with installerPassword 0 does not grant installer-level reset (stage3Timestamps preserved)', () => {
+    const cfg: G100Config = { ...defaultConfig, installerPassword: 0 }
+    const s = reachStage3ByCount(cfg)
+    const { state } = attemptReset(cfg, s, at(min(30)), 0)
+    // An installer reset would clear stage3Timestamps; a user reset preserves them
+    expect(state.stage3Timestamps).toHaveLength(1)
+  })
+
+  test('password 0 does not grant installer-level reset when installerPassword is non-zero', () => {
+    const s = reachStage3ByCount()  // installerPassword: 123456
+    const { state } = attemptReset(defaultConfig, s, at(min(30)), 0)
+    expect(state.stage3Timestamps).toHaveLength(1)
+  })
+
+  test('password 0 cannot bypass domestic limit even when allowUserReset is exhausted', () => {
+    const cfg: G100Config = { ...defaultConfig, installerPassword: 0 }
+    let s = createInitialState()
+    for (let i = 0; i < 3; i++) {
+      const offset = i * min(60)
+      for (let j = 0; j < 3; j++) {
+        const base = offset + j * min(2)
+        s = sustain(s, MEL - 1, base, base + sec(20), cfg)
+        s = feed(s, 0, base + sec(25), cfg)
+      }
+      if (i < 2) s = attemptReset(cfg, s, at(offset + min(10))).state
+    }
+    // Domestic limit exhausted; password 0 cannot act as installer override
+    const result = attemptReset(cfg, s, at(min(200)), 0)
+    expect(result.success).toBe(false)
   })
 
   test('installer password reset clears stage3Timestamps', () => {
@@ -494,6 +569,21 @@ describe('computeOutput', () => {
     const s = reachStage3ByCount(commercialConfig())
     const output = computeOutput(s, commercialConfig(), at(hr(5)))
     expect(output.resetEligible).toBe(true)
+  })
+
+  test('stage2In24HrCount reflects only timestamps within last 24 hours', () => {
+    let s = createInitialState()
+    // 3 excursions 15 min apart
+    for (let i = 0; i < 3; i++) {
+      s = sustain(s, MEL - 1, i * min(15), i * min(15) + sec(20))
+      s = feed(s, 0, i * min(15) + sec(25))
+    }
+    // All 3 within the 24-hr window
+    const output1 = computeOutput(s, defaultConfig, at(min(45)))
+    expect(output1.stage2In24HrCount).toBe(3)
+    // After 25 hours, all 3 fall out
+    const output2 = computeOutput(s, defaultConfig, at(hr(25)))
+    expect(output2.stage2In24HrCount).toBe(0)
   })
 
   test('stage2In10MinCount reflects only timestamps within last 10 minutes', () => {
