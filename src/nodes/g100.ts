@@ -118,7 +118,15 @@ module.exports = function (RED: NodeRED) {
       // AC source update from a Victron System node
       // (connect victron-input-system /Ac/ActiveIn/Source with topic='acSource')
       if (msg.topic === 'acSource') {
+        const wasGrid = acSourceIsGrid
         acSourceIsGrid = msg.payload === 1
+        // Switching away from grid while an excursion is in progress: clear the
+        // in-flight excursion so that generator downtime is not counted toward
+        // the G100 15s/1min thresholds when the grid returns.
+        if (wasGrid && !acSourceIsGrid && state.inExcursion) {
+          const sanitized = sanitizeOnLoad(state)
+          saveAndEmit(sanitized, computeOutput(sanitized, g100Config, now))
+        }
         return
       }
 
