@@ -1,4 +1,4 @@
-export type G100Stage = 1 | 2 | 3
+export type G100Stage = 1 | 3
 
 export interface G100Config {
   mel: number | null   // Maximum Export Limit (W, negative). null = no export limit.

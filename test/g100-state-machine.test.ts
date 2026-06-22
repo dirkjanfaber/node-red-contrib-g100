@@ -521,6 +521,25 @@ describe('Stage 3 reset — commercial', () => {
     const result = attemptReset(commercialConfig(), s, at(hr(2)), 999999)
     expect(result.success).toBe(false)
   })
+
+  test('null lockoutStartTs in Stage 3 does not grant instant commercial reset', () => {
+    // Simulates state loaded from a flow written by an older version that lacked lockoutStartTs
+    const corruptState: G100State = {
+      ...reachStage3ByCount(commercialConfig()),
+      lockoutStartTs: null
+    }
+    const result = attemptReset(commercialConfig(), corruptState, at(0))
+    expect(result.success).toBe(false)
+  })
+
+  test('null lockoutStartTs in Stage 3 reports resetEligible false in commercial mode', () => {
+    const corruptState: G100State = {
+      ...reachStage3ByCount(commercialConfig()),
+      lockoutStartTs: null
+    }
+    const output = computeOutput(corruptState, commercialConfig(), at(0))
+    expect(output.resetEligible).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------
