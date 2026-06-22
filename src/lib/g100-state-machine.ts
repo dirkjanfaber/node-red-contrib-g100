@@ -145,7 +145,7 @@ export function computeOutput (state: G100State, config: G100Config, now: Date):
     } else {
       const elapsed = state.lockoutStartTs !== null
         ? now.getTime() - new Date(state.lockoutStartTs).getTime()
-        : Infinity
+        : 0  // unknown start (corrupt/migrated state): assume just entered lockout
       resetEligible = elapsed >= LOCKOUT_COMMERCIAL_TIMEOUT_MS
     }
   }
@@ -200,7 +200,7 @@ export function attemptReset (
   // Commercial: 4-hour timeout required
   const elapsed = state.lockoutStartTs !== null
     ? now.getTime() - new Date(state.lockoutStartTs).getTime()
-    : Infinity
+    : 0  // unknown start (corrupt/migrated state): assume just entered lockout
   if (elapsed >= LOCKOUT_COMMERCIAL_TIMEOUT_MS) {
     return { success: true, state: clearToStage1(state, false) }
   }

@@ -27,12 +27,18 @@ export function isFileContextConfigured (contextStorage: unknown): boolean {
  *   - a string reference to a store:  'file'  (looks up storage['file'])
  *   - an object with a module key:    { module: 'localfilesystem' }
  */
-function resolveModule (entry: unknown, storage: Record<string, unknown>): string | undefined {
+function resolveModule (
+  entry: unknown,
+  storage: Record<string, unknown>,
+  visited: Set<string> = new Set()
+): string | undefined {
   if (typeof entry === 'string') {
+    if (visited.has(entry)) return undefined  // cycle — bail out
     // Could be a module name directly, or a reference to another store
     const referenced = storage[entry]
     if (referenced !== undefined) {
-      return resolveModule(referenced, storage)
+      visited.add(entry)
+      return resolveModule(referenced, storage, visited)
     }
     return entry
   }

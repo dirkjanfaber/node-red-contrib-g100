@@ -49,8 +49,9 @@ module.exports = function (RED: NodeRED) {
   function G100Node (this: any, config: G100NodeConfig) {
     RED.nodes.createNode(this, config)
 
+    const melRaw = Number(config.mel)
     const g100Config: G100Config = {
-      mel: Number(config.mel),
+      mel: Number.isFinite(melRaw) ? melRaw : null,
       mil: config.enableMil ? Number(config.mil) : null,
       mode: config.mode === 'commercial' ? 'commercial' : 'domestic',
       installerPassword: Number(config.installerPassword),
@@ -62,6 +63,13 @@ module.exports = function (RED: NodeRED) {
       this.warn(
         'G100: installer password is not configured (value is 0). ' +
         'Installer resets are disabled until a non-zero password is set in the node settings.'
+      )
+    }
+
+    // Warn if MEL resolved to null due to a missing or non-numeric config field
+    if (!Number.isFinite(melRaw)) {
+      this.warn(
+        'G100: MEL is missing or not a valid number — export limit enforcement is disabled.'
       )
     }
 

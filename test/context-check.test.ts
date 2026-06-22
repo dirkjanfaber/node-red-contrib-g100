@@ -77,4 +77,22 @@ describe('isFileContextConfigured', () => {
       fs: 'localfilesystem'
     })).toBe(true)
   })
+
+  // ---- cycle safety --------------------------------------------------------
+
+  test('does not throw on circular store references', () => {
+    expect(() => isFileContextConfigured({
+      default: 'storeA',
+      storeA: 'storeB',
+      storeB: 'storeA'
+    })).not.toThrow()
+  })
+
+  test('returns false when circular store references prevent resolving a module', () => {
+    expect(isFileContextConfigured({
+      default: 'storeA',
+      storeA: 'storeB',
+      storeB: 'storeA'
+    })).toBe(false)
+  })
 })
