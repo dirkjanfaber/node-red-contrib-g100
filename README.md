@@ -58,7 +58,7 @@ Restart Node-RED. The node will appear in the **Victron Energy** category.
 
 State (excursion counters, lockout status, Stage 3 timestamps) is stored in Node-RED **file context** so it survives restarts. The node warns on deploy if context storage is not configured for file persistence.
 
-To enable file context in Node-RED's `settings.js`:
+To enable file context in Node-RED's `settings-user.js`:
 
 ```js
 module.exports = {
