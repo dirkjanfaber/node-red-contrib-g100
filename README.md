@@ -18,12 +18,10 @@ The regulation distinguishes **domestic** and **commercial** sites:
 
 ## Installation
 
-```bash
-cd ~/.node-red
-npm install node-red-contrib-g100
-```
+In the palette manager, search for the `node-red-contrib-g100` package and
+install it from there.
 
-Restart Node-RED. The node will appear in the **Victron Energy** category.
+The node will appear in the **Victron Energy** category once the install completes — no manual restart needed.
 
 ## Node: g100
 
